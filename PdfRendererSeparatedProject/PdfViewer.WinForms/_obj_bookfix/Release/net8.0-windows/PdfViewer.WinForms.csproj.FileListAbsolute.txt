@@ -1,0 +1,4 @@
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\PdfViewer.WinForms\_obj_bookfix\Release\net8.0-windows\PdfViewer.WinForms.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\PdfViewer.WinForms\_obj_bookfix\Release\net8.0-windows\PdfViewer.WinForms.AssemblyInfoInputs.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\PdfViewer.WinForms\_obj_bookfix\Release\net8.0-windows\PdfViewer.WinForms.AssemblyInfo.cs
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\PdfViewer.WinForms\_obj_bookfix\Release\net8.0-windows\PdfViewer.WinForms.csproj.CoreCompileInputs.cache

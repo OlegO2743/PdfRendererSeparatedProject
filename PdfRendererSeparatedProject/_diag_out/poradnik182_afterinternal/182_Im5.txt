@@ -1,0 +1,7 @@
+name=/Im5
+size=197x151
+bpc=8
+filter=/DCTDecode
+colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
+bytes=4644
+output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_out\poradnik182_afterinternal\182_Im5.png

@@ -1,0 +1,5 @@
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_Type1Tune\PdfViewer.WinForms.exe
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_Type1Tune\PdfViewer.WinForms.dll
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_Type1Tune\PdfViewer.WinForms.deps.json
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_Type1Tune\PdfViewer.WinForms.runtimeconfig.json
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_Type1Tune\PdfViewer.WinForms.pdb

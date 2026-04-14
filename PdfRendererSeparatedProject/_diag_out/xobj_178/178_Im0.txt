@@ -1,0 +1,7 @@
+name=/Im0
+size=165x162
+bpc=8
+filter=
+colorspace=Indexed(ICCBased(n=3,alt=PdfDeviceRgbColorSpace),high=214)
+bytes=26730
+output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_out\xobj_178\178_Im0.png

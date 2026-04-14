@@ -1,0 +1,7 @@
+name=/Im0
+size=196x141
+bpc=8
+filter=/JPXDecode
+colorspace=Indexed(ICCBased(n=3,alt=PdfDeviceRgbColorSpace),high=249)
+bytes=17193
+output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_out\poradnik159_afterinternal\159_Im0.png

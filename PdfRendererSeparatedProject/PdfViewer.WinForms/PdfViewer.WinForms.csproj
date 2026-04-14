@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="obj\**\*.cs;_obj\**\*.cs;_obj_*\**\*.cs" />
+    <Compile Include="..\PdfCore\**\*.cs"
+             Exclude="..\PdfCore\**\bin\**\*;..\PdfCore\**\obj\**\*;..\PdfCore\**\_obj\**\*;..\PdfCore\**\_obj_*\**\*" />
+  </ItemGroup>
+<ItemGroup Condition="Exists('Assets\icc\default_cmyk.icc')">
+  <Content Include="Assets\icc\default_cmyk.icc">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
+
+</Project>

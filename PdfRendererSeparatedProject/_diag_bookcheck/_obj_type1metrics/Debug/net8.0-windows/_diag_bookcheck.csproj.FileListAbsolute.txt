@@ -1,0 +1,5 @@
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_bookcheck\_obj_type1metrics\Debug\net8.0-windows\_diag_bookcheck.csproj.AssemblyReference.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_bookcheck\_obj_type1metrics\Debug\net8.0-windows\_diag_bookcheck.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_bookcheck\_obj_type1metrics\Debug\net8.0-windows\_diag_bookcheck.AssemblyInfoInputs.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_bookcheck\_obj_type1metrics\Debug\net8.0-windows\_diag_bookcheck.AssemblyInfo.cs
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_bookcheck\_obj_type1metrics\Debug\net8.0-windows\_diag_bookcheck.csproj.CoreCompileInputs.cache

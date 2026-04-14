@@ -1,0 +1,7 @@
+name=/Im0
+size=198x501
+bpc=8
+filter=/DCTDecode
+colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
+bytes=11002
+output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_tmp_p2013_recheck_183\183_Im0.png

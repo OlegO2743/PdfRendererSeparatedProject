@@ -1,0 +1,7 @@
+name=/Im2
+size=492x126
+bpc=8
+filter=/DCTDecode
+colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
+bytes=8163
+output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_tmp_p2013_recheck_178\178_Im2.png

@@ -1,0 +1,7 @@
+name=/Im2
+size=209x54
+bpc=8
+filter=
+colorspace=Indexed(ICCBased(n=3,alt=PdfDeviceRgbColorSpace),high=200)
+bytes=11286
+output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_out\poradnik183\183_Im2.png

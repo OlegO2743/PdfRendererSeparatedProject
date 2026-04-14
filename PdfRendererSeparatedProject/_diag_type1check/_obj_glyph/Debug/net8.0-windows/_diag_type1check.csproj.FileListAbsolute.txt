@@ -1,0 +1,5 @@
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_glyph\Debug\net8.0-windows\_diag_type1check.csproj.AssemblyReference.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_glyph\Debug\net8.0-windows\_diag_type1check.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_glyph\Debug\net8.0-windows\_diag_type1check.AssemblyInfoInputs.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_glyph\Debug\net8.0-windows\_diag_type1check.AssemblyInfo.cs
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_glyph\Debug\net8.0-windows\_diag_type1check.csproj.CoreCompileInputs.cache

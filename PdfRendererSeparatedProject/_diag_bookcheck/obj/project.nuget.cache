@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "Ejo/ZN6/G2U=",
+  "success": true,
+  "projectFilePath": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\_diag_bookcheck\\_diag_bookcheck.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Oleg Ogar\\.nuget\\packages\\microsoft.win32.systemevents\\8.0.0\\microsoft.win32.systemevents.8.0.0.nupkg.sha512",
+    "C:\\Users\\Oleg Ogar\\.nuget\\packages\\system.drawing.common\\8.0.0\\system.drawing.common.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

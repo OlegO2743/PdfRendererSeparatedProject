@@ -1,0 +1,17 @@
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\PdfViewer.WinForms.deps.json
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\PdfViewer.WinForms.runtimeconfig.json
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\_diag_type1check.deps.json
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\_diag_type1check.runtimeconfig.json
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\_diag_type1check.dll
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\_diag_type1check.pdb
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\PdfViewer.WinForms.dll
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\bin\Debug\net8.0-windows\PdfViewer.WinForms.pdb
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_type1check.csproj.AssemblyReference.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_type1check.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_type1check.csproj.CoreCompileInputs.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_ty.55F6AC8B.Up2Date
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_type1check.dll
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\refint\_diag_type1check.dll
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_type1check.pdb
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\_diag_type1check.genruntimeconfig.cache
+D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_type1check\_obj_diag_jpxrlcp2\Debug\net8.0-windows\ref\_diag_type1check.dll
