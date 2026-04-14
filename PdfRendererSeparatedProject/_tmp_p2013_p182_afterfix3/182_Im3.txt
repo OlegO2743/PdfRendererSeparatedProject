@@ -1,7 +1,0 @@
-name=/Im3
-size=209x54
-bpc=8
-filter=
-colorspace=Indexed(ICCBased(n=3,alt=PdfDeviceRgbColorSpace),high=191)
-bytes=11286
-output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_tmp_p2013_p182_afterfix3\182_Im3.png

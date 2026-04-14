@@ -1,5 +1,0 @@
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_PoradnikOpenFix\PdfViewer.WinForms.exe
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_PoradnikOpenFix\PdfViewer.WinForms.dll
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_PoradnikOpenFix\PdfViewer.WinForms.deps.json
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_PoradnikOpenFix\PdfViewer.WinForms.runtimeconfig.json
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_PoradnikOpenFix\PdfViewer.WinForms.pdb

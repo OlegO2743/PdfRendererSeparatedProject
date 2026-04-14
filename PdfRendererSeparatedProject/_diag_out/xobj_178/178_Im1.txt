@@ -1,7 +1,0 @@
-name=/Im1
-size=194x105
-bpc=8
-filter=/DCTDecode
-colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
-bytes=4341
-output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_out\xobj_178\178_Im1.png

@@ -1,6 +1,0 @@
-name=/Im0
-size=642x906
-bpc=8
-filter=/JPXDecode
-colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
-bytes=60853

@@ -1,5 +1,0 @@
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf\PdfViewer.WinForms.exe
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf\PdfViewer.WinForms.dll
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf\PdfViewer.WinForms.deps.json
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf\PdfViewer.WinForms.runtimeconfig.json
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf\PdfViewer.WinForms.pdb

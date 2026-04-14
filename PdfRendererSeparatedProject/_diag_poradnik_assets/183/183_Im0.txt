@@ -1,7 +1,0 @@
-name=/Im0
-size=198x501
-bpc=8
-filter=/DCTDecode
-colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
-bytes=11002
-output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_poradnik_assets\183\183_Im0.png

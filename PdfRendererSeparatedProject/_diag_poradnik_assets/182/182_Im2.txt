@@ -1,7 +1,0 @@
-name=/Im2
-size=189x66
-bpc=8
-filter=/JPXDecode
-colorspace=ICCBased(n=3,alt=PdfDeviceRgbColorSpace)
-bytes=1275
-output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_diag_poradnik_assets\182\182_Im2.png

@@ -1,7 +1,0 @@
-name=/Im4
-size=209x54
-bpc=8
-filter=
-colorspace=Indexed(ICCBased(n=3,alt=PdfDeviceRgbColorSpace),high=200)
-bytes=11286
-output=D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_tmp_p2013_recheck_182\182_Im4.png

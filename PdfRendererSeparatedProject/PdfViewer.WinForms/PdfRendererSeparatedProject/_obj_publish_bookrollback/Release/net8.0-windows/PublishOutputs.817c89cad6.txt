@@ -1,5 +1,0 @@
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf_RollbackTriangles\PdfViewer.WinForms.exe
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf_RollbackTriangles\PdfViewer.WinForms.dll
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf_RollbackTriangles\PdfViewer.WinForms.deps.json
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf_RollbackTriangles\PdfViewer.WinForms.runtimeconfig.json
-D:\Projects\C#\PdfRendererSeparatedProject\PdfRendererSeparatedProject\_publish\PdfViewerPatched_BookPdf_RollbackTriangles\PdfViewer.WinForms.pdb
