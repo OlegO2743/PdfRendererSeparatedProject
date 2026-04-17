@@ -17,16 +17,21 @@ The goal is to keep a stable checklist so we do not re-diagnose the same pages a
 
 ## Page 1
 
-- `visual`: full-page cover image is missing or renders as blank/garbled cover, depending on build.
+- `visual`: page renders with the expected blue cover artwork; the old blank / gray embossed JPX failure mode is gone.
 - `resource`:
   - `/Im0` -> `/JPXDecode`, `642x906`, `ICCBased(n=3, alt=DeviceRGB)`
 - `status`:
   - image resource is definitely present
-  - current JPX path decodes it incorrectly; saved diagnostic PNG contains corrupted checkerboard-like output
-  - this is not a missing-resource problem
+  - superseded checkpoint note: the old blank-page blocker and the old gray / embossed JPX failure mode are both solved
+  - the decisive fix was the inverse 9/7 low/high normalization correction in `Synthesize97(...)`
+  - fresh isolated-image render of `/Im0` is visually close to the Pillow reference decode from the raw JPX payload
+  - later diagnostics showed that the isolated internal decode and the Pillow decode are effectively identical, so the remaining tiny hue mismatch was not a JPX-core issue
+  - live viewer parity improved further after adding a display-profile transform in the WinForms presentation layer
+  - user validation after that viewer change: the page is now visually "1:1" and hard to distinguish from the browser by eye
+  - the old “blank page” blocker is solved
 - `next`:
-  - stop preferring bad JPX output when an internal decode is possible
-  - compare WIC vs internal JPX result for this codestream
+  - keep this page as the primary high-signal regression page for both JPX and viewer display-profile parity
+  - only revisit if live app output diverges again after future viewer/render changes
 
 ## Page 145
 
@@ -35,25 +40,43 @@ The goal is to keep a stable checklist so we do not re-diagnose the same pages a
 - `status`: working baseline page for comparison.
 - `next`: use as a control/reference page.
 
+## Page 141
+
+- `visual`:
+  - the user-reported large product image used to look too contrasty and lose
+    inner fan detail
+  - in fresh diagnostic renders the page is now visually close to the browser
+    reference
+- `resource`:
+  - `/Im0` -> `/JPXDecode`, `168x144`, grayscale (`comps=1`), reversible `5/3`
+  - `/Im1` -> `/DCTDecode`, `498x327`, ICCBased
+- `status`:
+  - isolated-image diagnostics showed that the harsh look came from `/Im0`
+    itself, not from page composition
+  - the remaining issue was fixed by normalizing Tier-1 reconstructed
+    coefficients by `0.5` before using them as real wavelet coefficients
+  - the refreshed isolated `/Im0` render regains the darker inner fan detail
+    instead of clipping it into near-black
+  - fresh page render is now treated as visually OK
+- `next`:
+  - keep as a regression page for reversible single-component JPX
+
 ## Page 159
 
-- `visual`: large central product image is missing; graphs render.
+- `visual`: large central product image renders correctly in fresh diagnostic output; graphs also render correctly.
 - `resource`:
   - `/Im0` -> `/JPXDecode`, `196x141`, `Indexed(ICCBased(n=3, alt=DeviceRGB), high=249)`
 - `status`:
-  - missing image is not caused by absent XObject
-  - current code already routes `/JPXDecode` through `Jpeg2000Decoder.Decode(...)` before indexed-palette application
-  - so the old diagnosis about raw `CreateIndexedBitmap()` is obsolete
-  - page still behaves like a JPX decode / JPX quality problem, not a resource lookup problem
+  - page is currently visually OK in fresh diagnostic renders
+  - keep it as a regression page because it previously failed and because it exercises `JPXDecode + Indexed`
 - `next`:
-  - prefer the internal JPX decoder whenever its codestream support check passes
-  - compare the internal result against the current WIC-based path on this codestream
+  - keep under regression watch after later JPX changes
 
 ## Page 177
 
 - `visual`:
   - in the live app screenshot the large left product image was reported missing
-  - in a fresh diagnostic render the large left product image is present, but visibly degraded / noisy
+  - in fresh diagnostic renders the large left product image is present and visually acceptable
   - lower-right product/control image renders correctly
   - earlier builds had spacing/encoding drift / broken Polish glyphs
 - `resource`:
@@ -62,12 +85,12 @@ The goal is to keep a stable checklist so we do not re-diagnose the same pages a
 - `status`:
   - saved diagnostic PNG for `/Im0` exists, so the resource is present and decodes into an image object
   - page-level clean render also shows the large product image, so this is no longer treated as a hard missing-resource case
-  - `/Im0` is visibly degraded / noisy, so this is tracked as a JPX quality problem rather than a missing-resource problem
+  - after the `HH` context fix, `/Im0` looks materially cleaner than the earlier noisy / degraded state
   - `/Im1` saves and renders correctly as a raw indexed Flate image
   - after adding CID-keyed CFF charset mapping, the Polish text on this page renders correctly in the fresh diagnostic output
 - `next`:
-  - improve JPX decode quality for `/Im0`
-  - verify why the live app view can still diverge from the clean renderer output
+  - keep under regression watch; revisit only if later JPX work regresses `/Im0`
+  - verify live app parity only if a rebuilt viewer still diverges from the clean renderer output
 
 ## Page 178
 
@@ -88,9 +111,8 @@ The goal is to keep a stable checklist so we do not re-diagnose the same pages a
 ## Page 182
 
 - `visual`:
-  - user screenshot reported top icon cluster missing
-  - user screenshot reported lower icon cluster missing
-  - mid-left product image has poor quality / wrong appearance
+  - icon clusters are present in fresh page renders
+  - the mid-left product image now renders correctly enough for the current checkpoint
   - earlier builds had slight text drift and broken Polish glyphs
 - `resource`:
   - `/Im0` -> `441 0 obj`, `/FlateDecode`, `64x54`, indexed via `703 0 R`
@@ -101,15 +123,16 @@ The goal is to keep a stable checklist so we do not re-diagnose the same pages a
   - `/Im5` -> `446 0 obj`, `/DCTDecode`, `197x151`, ICCBased
 - `status`:
   - saved diagnostic PNGs for `/Im0`, `/Im1`, `/Im3`, `/Im4`, `/Im5` are correct
-  - `/Im2` (`JPXDecode`, ICCBased) decodes to visibly degraded output
+  - `/Im2` (`JPXDecode`, ICCBased) was the smallest focused repro for the remaining 3-component 9/7 issue
+  - after fixing reversed low/high normalization in `Synthesize97(...)`, the isolated-image render of `/Im2` is visually close to the Pillow reference decode from the raw JPX payload
+  - after additionally normalizing Tier-1 reconstructed coefficients by `0.5`, `/Im2` is no longer visibly over-contrasty
   - page-level object inspection shows `/Im0` ... `/Im5` all have bounds on the page
   - fresh page render also shows the icon clusters, so the renderer core currently treats them as present
   - after adding CID-keyed CFF charset mapping, the page text renders correctly in the fresh diagnostic output
-  - therefore the remaining confirmed issue here is primarily:
-    - JPX quality problem on `/Im2`
+  - this page is no longer an active JPX blocker for the current checkpoint
 - `next`:
-  - improve JPX decode quality for `/Im2`
-  - verify why the live app view can still diverge from the clean renderer output
+  - keep `/Im2` as a compact regression repro for future 3-component 9/7 work
+  - verify live app parity only if a rebuilt viewer still diverges from the clean renderer output
 
 ## Page 183
 
@@ -130,11 +153,58 @@ The goal is to keep a stable checklist so we do not re-diagnose the same pages a
 - `next`:
   - revisit only if live-app divergence still reproduces after rebuild
 
+## Page 188
+
+- `visual`:
+  - the user-reported back cover used to render noticeably too dark / too
+    contrasty compared with the browser/PDF viewer
+  - after the core JPX fixes the page became much closer in tone to the
+    browser reference
+  - after the later viewer display-profile change, any remaining mismatch is
+    treated as subtle parity tuning rather than a broken decode
+- `resource`:
+  - `/Im0` -> `/JPXDecode`, `641x906`, ICCBased
+- `status`:
+  - isolated-image diagnostics confirmed the tonal mismatch already existed in
+    `/Im0` before page composition
+  - the embedded ICC profile is ordinary `sRGB IEC61966-2.1`, so the remaining
+    mismatch was not caused by missing ICC conversion
+  - the decisive fix was the Tier-1 coefficient normalization by `0.5`
+  - later viewer work added a display-profile transform for page and thumbnail
+    presentation, which should reduce any residual live-app hue difference
+  - this page is now treated as visually OK in renderer core and as a
+    high-value regression page for subtle viewer parity
+- `next`:
+  - keep as the main regression page for large 3-component irreversible JPX and
+    subtle live-app/browser parity checks
+
 ---
 
 ## Current technical priority
 
-1. Fix `JPXDecode + Indexed` / `JPXDecode + ICCBased` quality so pages `1`, `159`, `177`, `182` stop rendering degraded images.
-2. Re-check live app output versus clean renderer output after each rebuild, so we separate core-render issues from stale-app / UI mismatches.
-3. Keep page `178` as a regression-check page, because its missing graph now reproduces as present in fresh renders.
+1. Treat page `1` and page `188` as the primary parity pages after the viewer display-profile fix.
+2. Treat pages `141`, `159`, `177`, `178`, `182`, `183` as renderer-core regression pages after the JPX coefficient-normalization fix.
+3. Re-check live app output versus clean renderer output after each rebuild, so we separate core-render issues from stale-app / UI mismatches.
 4. Keep the CID-keyed CFF text fix under regression watch, because it resolved the Polish glyph/text corruption on `177`, `182`, `183`.
+5. If future JPX work is needed, start from raw export + Pillow reference decode before changing tier-1 or DWT code again.
+
+## 2026-04-16 restart checkpoint
+
+User explicitly requested a persistent checkpoint so work can resume cleanly after restart.
+
+### Main unresolved issue
+
+- The old page `1` blank / embossed JPX blocker is solved.
+- The old page `182 /Im2` bad-JPX blocker is also solved for the current checkpoint.
+- The later tonal-contrast mismatch on pages `141`, `182`, `188` is also solved in renderer core.
+- A later tiny live-app hue mismatch was largely addressed by a viewer-side display-profile transform.
+- If work resumes later, the likely remaining work is subtle live-app parity or new PDFs, not the old poradnik2013 broken JPX imagery.
+
+### Resume order
+
+1. Re-check the rebuilt live app and thumbnail strip against pages `1` and `188` first, because they are the most sensitive parity pages after the display-profile change.
+2. Then spot-check pages `141`, `159`, `177`, `178`, `182`, `183` as renderer-core regression pages.
+3. If a JPX mismatch reappears, export the raw payload first and compare against Pillow before changing the decoder.
+4. If a mismatch exists only in the live app but not in isolated-image/page diagnostics, inspect the viewer display-profile path before touching JPX code.
+5. Keep page `178` as a regression page for previously missing graphics.
+6. Only treat future issues as core-render regressions after comparing live app output with fresh diagnostic renderer output.

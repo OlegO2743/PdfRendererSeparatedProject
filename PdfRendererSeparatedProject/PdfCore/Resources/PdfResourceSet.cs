@@ -9,4 +9,5 @@ public sealed class PdfResourceSet
     public Dictionary<string, PdfImageXObject> Images { get; } = new(StringComparer.Ordinal);
     public Dictionary<string, PdfColorSpace> ColorSpaces { get; } = new(StringComparer.Ordinal);
     public Dictionary<string, PdfTilingPattern> Patterns { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, PdfExtGraphicsState> ExtGraphicsStates { get; } = new(StringComparer.Ordinal);
 }

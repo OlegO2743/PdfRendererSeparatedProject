@@ -31,7 +31,7 @@ public sealed class ImageCanvasControl : Control
     public void SetRenderedPage(Bitmap? bitmap, IReadOnlyList<PdfRenderObject>? objects)
     {
         var old = _bitmap;
-        _bitmap = bitmap;
+        _bitmap = DisplayColorProfileTransform.PrepareForScreen(bitmap);
         _objects = objects ?? Array.Empty<PdfRenderObject>();
         _hoveredObjectIndex = -1;
         Size = _bitmap?.Size ?? new Size(1, 1);

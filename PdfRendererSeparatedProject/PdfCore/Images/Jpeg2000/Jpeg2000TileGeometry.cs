@@ -2,6 +2,11 @@ namespace PdfCore.Images.Jpeg2000;
 
 internal static class Jpeg2000TileGeometryBuilder
 {
+    private static readonly bool SwapHlLhForDiagnostics = string.Equals(
+        Environment.GetEnvironmentVariable("JPX_SWAP_HL_LH"),
+        "1",
+        StringComparison.Ordinal);
+
     public static Jpeg2000TileGeometry Build(Jpeg2000Codestream codestream, int tileIndex)
     {
         Jpeg2000TileBounds tileBounds = codestream.Size.GetTileBounds(tileIndex);
@@ -66,8 +71,16 @@ internal static class Jpeg2000TileGeometryBuilder
                 int lowHeight = CeilingDiv(currentY1, 2) - CeilingDiv(currentY0, 2);
                 int highWidth = FloorDiv(currentX1, 2) - FloorDiv(currentX0, 2);
                 int highHeight = FloorDiv(currentY1, 2) - FloorDiv(currentY0, 2);
-                subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.HL, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
-                subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.LH, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
+                if (SwapHlLhForDiagnostics)
+                {
+                    subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.LH, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
+                    subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.HL, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
+                }
+                else
+                {
+                    subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.HL, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
+                    subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.LH, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
+                }
                 subbands.Add(BuildWaveletSubband(Jpeg2000SubbandKind.HH, resolutionIndex, quantizationIndex++, lowWidth, lowHeight, highWidth, highHeight, codingStyle));
             }
 

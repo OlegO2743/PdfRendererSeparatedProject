@@ -3,6 +3,290 @@
 This file tracks confirmed findings and next steps for the internal JPX/JPEG2000 path.
 It exists so work can resume without redoing already verified diagnostics.
 
+## Update 2026-04-17 (latest)
+
+### New confirmed findings
+
+#### AD. The tiny remaining blue/hue mismatch in the live WinForms app was a display-stage issue, not a JPX decode issue
+
+After the core JPX fixes were in place, the user still reported a very small
+"slightly too blue" live-app mismatch on the cover page.
+
+The decisive diagnostic result was:
+
+- isolated `poradnik2013.pdf` page `1`, `/Im0`
+- internal decode output
+- Pillow decode of the raw exported `.jpx`
+
+Those two isolated-image outputs were effectively pixel-identical, which means
+the remaining hue mismatch was no longer in:
+
+- Tier-1
+- dequantization
+- inverse `9/7`
+- ICC handling of the image XObject itself
+
+Interpretation:
+
+- the core JPX renderer is now the source-truth path
+- the remaining user-visible mismatch was happening later, at screen display
+  time inside the WinForms viewer
+
+#### AE. Viewer parity was improved by applying the system display profile to page and thumbnail bitmaps before drawing them
+
+The WinForms viewer now applies a display-stage transform from `sRGB` into the
+current monitor profile obtained from `GetICMProfile(...)`.
+
+This was wired into:
+
+- page view bitmaps
+- centered image canvas bitmaps
+- thumbnails
+
+Practical result:
+
+- the user reported that page `1` is now visually "1:1" / extremely difficult
+  to distinguish from the browser by eye
+- this closes the remaining obvious live-app hue mismatch for the main cover
+  regression
+
+Diagnostic note:
+
+- the display transform can be disabled with `PDF_VIEWER_DISABLE_DISPLAY_ICC=1`
+  if future debugging needs the raw unadjusted viewer output
+
+#### AB. The remaining "too contrasty" JPX output was not an ICC issue; it came from a missing 0.5 normalization of Tier-1 reconstructed coefficients
+
+Fresh diagnostics for the user-reported pages:
+
+- `poradnik2013.pdf` page `141`, `/Im0`
+- `poradnik2013.pdf` page `182`, `/Im2`
+- `poradnik2013.pdf` page `188`, `/Im0`
+
+showed that the isolated JPX images themselves were already over-contrasty
+before page composition. A temporary `ICC` path was checked, but the embedded
+profile on the problematic RGB assets is ordinary `sRGB IEC61966-2.1`, so ICC
+conversion was not the source of the large visual mismatch.
+
+The actual remaining defect was that `Jpeg2000Tier1Decoder.DecodeCodeBlock(...)`
+reconstructs magnitudes in a midpoint/fixed-point form with one extra `1/2`
+bit, while our downstream code was feeding those values directly into:
+
+- reversible `5/3` inverse DWT (`Transform53`)
+- irreversible `9/7` dequantization / inverse DWT (`Transform97`)
+
+The decisive fix was to normalize those coefficients by `0.5` before using
+them as real coefficient values:
+
+- reversible path: divide stored codeblock coefficients by `2`
+- irreversible path: multiply stored codeblock coefficients by `0.5f` before
+  applying the quantization step size
+
+Interpretation:
+
+- the old output was effectively using coefficients at about `2x` amplitude
+- that explains the remaining blown highlights / crushed shadows after the
+  earlier `Synthesize97(...)` fix
+- this coefficient normalization fix is real and must stay
+
+#### AC. After the Tier-1 coefficient normalization fix, the active poradnik2013 JPX pages line up much better with the browser reference
+
+Fresh renders after the coefficient normalization fix show:
+
+- page `1`: still good
+- page `141`: the large product image regains internal detail and no longer
+  looks unnaturally harsh
+- page `159`: still correct
+- page `177`: still correct / acceptable
+- page `182`: the mid-left metallic product image is no longer over-contrasty
+- page `183`: still correct
+- page `188`: the back cover is much closer in tone to the browser/PDF viewer
+
+This means the current operational checkpoint is now:
+
+- page `1` visible in live page view and thumbnails: solved
+- remaining user-reported JPX contrast issue on pages `141/182/188`: solved in
+  renderer core
+- keep `159/177/183` as regression pages
+
+#### Y. The remaining “emboss / gray” JPX defect was primarily caused by reversed low/high normalization in the inverse 9/7 synthesis
+
+After exporting the raw JPX payloads via `_diag_renderpage image-raw ...` and
+decoding them locally with Pillow on this machine, we finally had a trustworthy
+reference for:
+
+- `poradnik2013.pdf` page `1`, `/Im0`
+- `poradnik2013.pdf` page `182`, `/Im2`
+
+The reference images showed that our decoder was no longer dropping the assets,
+but was reconstructing them as a high-frequency-heavy “emboss” version of the
+correct picture.
+
+The decisive fix was in
+`PdfCore\Images\Jpeg2000\Jpeg2000InternalDecoder.cs`,
+`Synthesize97(...)`:
+
+- before: low-frequency samples were multiplied by `1/K`, high-frequency
+  samples by `K`
+- now: low-frequency samples are multiplied by `K`, high-frequency samples by
+  `1/K`
+
+Interpretation:
+
+- the previous code was suppressing LL energy while over-emphasizing the
+  high-pass bands
+- that exactly matches the old gray / edge-only / embossed appearance
+- this fix is real and must stay
+
+#### Z. With the low/high normalization fix in place, the operational `poradnik2013` checkpoint is effectively closed
+
+Fresh diagnostic renders after the `Synthesize97(...)` fix show:
+
+- page `1 /Im0`: cover image is restored and visually close to the Pillow
+  reference
+- page `182 /Im2`: the metallic product image is restored and visually close to
+  the Pillow reference
+- page `159`: still correct
+- page `177`: still correct / acceptable
+- page `183`: still correct
+
+Also confirmed in code:
+
+- page view rendering uses `SimplePdfRenderer.RenderWithObjects(...)`
+- thumbnail rendering uses `SimplePdfRenderer.Render(...)`
+
+So this JPX fix is shared by:
+
+- the live page view
+- the thumbnail strip
+
+and does not live only in the diagnostic path.
+
+#### AA. A raw-image diagnostic path now exists and should be reused if JPX work resumes later
+
+`_diag_renderpage` now supports:
+
+```powershell
+dotnet ...\_diag_renderpage.dll image-raw <pdf> <page> <resource> [output]
+```
+
+This writes the raw image payload (`.jpx` for `JPXDecode`) without passing
+through our decoder, which makes it easy to compare:
+
+- internal decode
+- external reference decode (Pillow on this machine)
+
+#### U. The `HH` significance-context mapping was wrong and fixing it materially improved the 3-component 9/7 path
+
+`PdfCore\Images\Jpeg2000\Jpeg2000InternalDecoder.cs`,
+`GetSignificanceLabelOrient2(...)`, now uses the stricter `HH` context split:
+
+```csharp
+if (d == 0)
+    return h == 0 && v == 0 ? 0 : h + v == 1 ? 1 : 2;
+if (d == 1)
+    return h == 0 && v == 0 ? 3 : h + v == 1 ? 4 : 5;
+if (d == 2)
+    return h == 0 && v == 0 ? 6 : 7;
+return 8;
+```
+
+This is a real fix, not just a diagnostic toggle:
+
+- `poradnik2013.pdf` page `1` is still not final, but it is much cleaner than the old heavy mosaic / checkerboard state
+- page `159` remains correct
+- page `177` remains visually acceptable and no worse than before
+- page `183` remains correct
+
+Interpretation:
+
+- the previous `HH` context grouping was materially corrupting the irreversible JPX decode
+- do **not** revert this `HH` context fix
+
+#### V. The remaining JPX repro is no longer “multi-tile only”; page `182` isolates it to a smaller single-tile codestream
+
+Fresh isolated-image diagnostics for `poradnik2013.pdf`, page `182`, `/Im2` now provide a cleaner repro:
+
+- `/Im2` -> `/JPXDecode`, `189x66`
+- codestream summary:
+  - `3` components
+  - `1` tile
+  - `6` tile-parts
+  - progression `RLCP`
+  - `5` decomposition levels
+  - irreversible transform (`transform=0`, 9/7)
+  - quantization style `2`
+  - `scod=0x00` (`precincts=no`)
+
+Interpretation:
+
+- the remaining quality defect is **not** explained by page-level composition or multi-tile merge alone
+- page `182 /Im2` is now the smallest focused repro for the still-bad 3-component 9/7 path
+
+#### W. `HH` was the dominant corruption source, but not the last one
+
+Diagnostic-only helpers added during this session:
+
+- `JPX_MAX_RESOLUTION`
+- `JPX_SKIP_SUBBANDS`
+
+Confirmed on page `1`:
+
+- `LL` / low-resolution-only output is coherent but very soft
+- skipping `HH` dramatically cleans the image
+- skipping `HL` or `LH` is not comparably beneficial
+
+Interpretation:
+
+- `HH` was the worst structural corruption source
+- after the `HH` context fix, the remaining problem is subtler and looks more like residual irreversible reconstruction quality than a total packet scramble
+
+#### X. On page `182 /Im2`, packet presence looks sane for component `0`
+
+Focused traces with `JPX_TRACE_PACKET='0,0'` on `page 182 /Im2` showed:
+
+- `res=0` `LL` included with plausible `zbp/passes/len`
+- higher resolutions contain plausible `HL/LH/HH` included blocks for component `0`
+
+At the same time, `JPX_DUMP_STATS='1'` on the same image showed:
+
+- `comp=0` non-zero range (`min=-205.8223`, `max=158.3393`, `mean=2.6702`)
+- `comp=1` and `comp=2` stayed exactly `0`
+
+Interpretation:
+
+- for this small metallic image, the remaining defect is not “component 0 fully missing”
+- the current bad appearance is now later / subtler than the old packet-length failures
+
+### Current best-known resume point
+
+If work resumes later, continue from this exact state:
+
+1. keep the `HH` context fix in `GetSignificanceLabelOrient2(...)`
+2. keep the inverse 9/7 low/high normalization fix in `Synthesize97(...)`
+3. treat `page 1`, `159`, `177`, `182`, `183` as regression pages, not as open blockers
+4. keep `page 159` and `page 183` as “must not regress”
+5. if further debugging is needed, start from:
+   - `JPX_DUMP_STATS`
+   - `JPX_TRACE_PACKET`
+   - isolated-image render via `_diag_renderpage image ...`
+
+### Current best-known resume point (updated after the 9/7 normalization fix)
+
+Use this instead of the older five-step list above.
+
+1. keep the `HH` context fix in `GetSignificanceLabelOrient2(...)`
+2. keep the inverse 9/7 low/high normalization fix in `Synthesize97(...)`
+3. treat `page 1`, `159`, `177`, `182`, `183` as regression pages, not as open blockers
+4. if future JPX work is needed, start from:
+   - `JPX_DUMP_STATS`
+   - `JPX_TRACE_PACKET`
+   - isolated-image render via `_diag_renderpage image ...`
+   - raw export via `_diag_renderpage image-raw ...`
+   - Pillow reference decode of the raw `.jpx`
+5. the remaining gap versus Pillow is now tonal / parity-level, not the old
+   “missing or embossed image” failure mode
+
 ## Update 2026-04-12 (latest)
 
 ### New confirmed findings
@@ -759,3 +1043,35 @@ This improved some traces but did not fix the missing images.
 
 Resume from packet parser diagnostics, specifically page `159`, `tile=0`, `component=0`, `resolution=1`, `layer=0`.
 That is the smallest reproducible failure currently known.
+
+## 2026-04-16 restart checkpoint
+
+User explicitly requested a persistent checkpoint so work can resume cleanly after restart.
+
+### Main live failure
+
+- `poradnik2013.pdf`, page `1`, is still blank in the live app and in the thumbnail strip.
+- Expected result: the blue cover image must be visible.
+- The user copied `poradnik2013.pdf` into the project folder specifically as the failing reproduction file.
+
+### What is already known
+
+- Packet-parser work improved traces (`ReadCodingPassCount(...)` fix), but did not solve the missing JPX images.
+- Page `159`, `tile=0`, `component=0`, `resolution=1`, `layer=0` remains the smallest low-level packet-parser repro and should stay the regression point.
+- Page `1` likely needs inspection beyond packet lengths alone:
+  - JP2/JPX container interpretation
+  - decoded component reconstruction
+  - alpha / soft-mask handling
+  - colorspace application
+
+### Resume order
+
+1. Make `poradnik2013.pdf` page `1` visible in the live app.
+2. If page `1` is still blank, log for the page-1 JPX image:
+   - dimensions
+   - component count / bit depth
+   - colorspace
+   - presence of alpha / `SMask`
+   - whether decoded pixels are non-zero before page composition
+3. Keep page `159` as the low-level parser regression target.
+4. After page `1` becomes visible, continue quality fixes for pages `159`, `177`, `182`, `183`.

@@ -14,6 +14,15 @@ internal static class Jpeg2000InternalDecoder
         Environment.GetEnvironmentVariable("JPX_DUMP_STATS"),
         "1",
         StringComparison.Ordinal);
+    private static readonly string StepModeForDiagnostics =
+        Environment.GetEnvironmentVariable("JPX_STEP_MODE") ?? string.Empty;
+    private static readonly bool SwapOrientationContextsForDiagnostics = string.Equals(
+        Environment.GetEnvironmentVariable("JPX_SWAP_ORIENTATION_CTX"),
+        "1",
+        StringComparison.Ordinal);
+    private static readonly int MaxResolutionForDiagnostics = ParseMaxResolutionForDiagnostics();
+    private static readonly HashSet<string> SkippedSubbandsForDiagnostics = ParseSkippedSubbandsForDiagnostics();
+    private static readonly float LlScaleForDiagnostics = ParseSingleScaleForDiagnostics("JPX_LL_SCALE");
 
     public static bool CanDecode(Jpeg2000Codestream codestream)
     {
@@ -262,8 +271,14 @@ internal static class Jpeg2000InternalDecoder
 
         foreach (Jpeg2000PacketResolution resolution in component.Resolutions)
         {
+            if (MaxResolutionForDiagnostics >= 0 && resolution.Geometry.ResolutionIndex > MaxResolutionForDiagnostics)
+                continue;
+
             foreach (Jpeg2000PacketSubband subband in resolution.Subbands)
             {
+                if (ShouldSkipSubbandForDiagnostics(subband.Geometry.Kind))
+                    continue;
+
                 Jpeg2000QuantizationStep step = quantization.Steps[subband.Geometry.QuantizationIndex];
                 int magnitudeBitPlanes = step.Exponent + quantization.GuardBits - 1;
                 foreach (Jpeg2000PacketCodeBlock codeBlock in subband.CodeBlocks)
@@ -301,11 +316,19 @@ internal static class Jpeg2000InternalDecoder
 
         foreach (Jpeg2000PacketResolution resolution in component.Resolutions)
         {
+            if (MaxResolutionForDiagnostics >= 0 && resolution.Geometry.ResolutionIndex > MaxResolutionForDiagnostics)
+                continue;
+
             foreach (Jpeg2000PacketSubband subband in resolution.Subbands)
             {
+                if (ShouldSkipSubbandForDiagnostics(subband.Geometry.Kind))
+                    continue;
+
                 Jpeg2000QuantizationStep step = quantization.Steps[subband.Geometry.QuantizationIndex];
                 int magnitudeBitPlanes = step.Exponent + quantization.GuardBits - 1;
                 float stepSize = GetIrreversibleStepSize(quantization, step, subband.Geometry.Kind, componentInfo.Precision);
+                if (subband.Geometry.Kind == Jpeg2000SubbandKind.LL)
+                    stepSize *= LlScaleForDiagnostics;
                 foreach (Jpeg2000PacketCodeBlock codeBlock in subband.CodeBlocks)
                 {
                     if (!codeBlock.Included || codeBlock.CodingPasses == 0)
@@ -343,7 +366,8 @@ internal static class Jpeg2000InternalDecoder
         {
             int srcRow = y * blockWidth;
             int dstRow = (offsetY + y) * targetWidth + offsetX;
-            Array.Copy(block, srcRow, target, dstRow, blockWidth);
+            for (int x = 0; x < blockWidth; x++)
+                target[dstRow + x] = NormalizeTier1CoefficientInt(block[srcRow + x]);
         }
     }
 
@@ -376,7 +400,7 @@ internal static class Jpeg2000InternalDecoder
                 int srcRow = y * blockWidth;
                 int dstRow = (offsetY + y) * targetWidth + offsetX;
                 for (int x = 0; x < blockWidth; x++)
-                    target[dstRow + x] = block[srcRow + x] * scale;
+                    target[dstRow + x] = NormalizeTier1Coefficient(block[srcRow + x]) * scale;
             }
         }
         catch (Exception ex) when (ex is IndexOutOfRangeException or ArgumentException or InvalidOperationException)
@@ -540,11 +564,26 @@ internal static class Jpeg2000InternalDecoder
             _ => 0
         };
 
-        return MathF.Pow(2f, precision + gain - step.Exponent) * (1f + step.Mantissa / 2048f);
+        float baseScale = MathF.Pow(2f, precision + gain - step.Exponent) * (1f + step.Mantissa / 2048f);
+        return StepModeForDiagnostics switch
+        {
+            "half" => baseScale * 0.5f,
+            "nogain" => MathF.Pow(2f, precision - step.Exponent) * (1f + step.Mantissa / 2048f),
+            "nogain_half" => MathF.Pow(2f, precision - step.Exponent) * (1f + step.Mantissa / 2048f) * 0.5f,
+            _ => baseScale
+        };
     }
 
     private static int RoundToInt(float value)
         => (int)MathF.Round(value, MidpointRounding.AwayFromZero);
+
+    // Tier-1 reconstruction uses a one-bit fractional midpoint representation.
+    // Convert it back to whole-sample coefficient space before inverse DWT/output mapping.
+    private static int NormalizeTier1CoefficientInt(int value)
+        => value / 2;
+
+    private static float NormalizeTier1Coefficient(int value)
+        => value * 0.5f;
 
     private static int Clamp(int value, int minValue, int maxValue)
     {
@@ -554,10 +593,44 @@ internal static class Jpeg2000InternalDecoder
             return maxValue;
         return value;
     }
+
+    private static int ParseMaxResolutionForDiagnostics()
+    {
+        string? raw = Environment.GetEnvironmentVariable("JPX_MAX_RESOLUTION");
+        return int.TryParse(raw, out int value) ? value : -1;
+    }
+
+    private static HashSet<string> ParseSkippedSubbandsForDiagnostics()
+    {
+        string? raw = Environment.GetEnvironmentVariable("JPX_SKIP_SUBBANDS");
+        if (string.IsNullOrWhiteSpace(raw))
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        return raw
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool ShouldSkipSubbandForDiagnostics(Jpeg2000SubbandKind kind)
+        => SkippedSubbandsForDiagnostics.Contains(kind.ToString());
+
+    private static float ParseSingleScaleForDiagnostics(string environmentVariableName)
+    {
+        string? raw = Environment.GetEnvironmentVariable(environmentVariableName);
+        return float.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value) &&
+               value > 0f
+            ? value
+            : 1f;
+    }
 }
 
 internal static class Jpeg2000Tier1Decoder
 {
+    private static readonly bool SwapOrientationContextsForDiagnostics = string.Equals(
+        Environment.GetEnvironmentVariable("JPX_SWAP_ORIENTATION_CTX"),
+        "1",
+        StringComparison.Ordinal);
+
     public static int[] DecodeCodeBlock(
         Jpeg2000PacketCodeBlock codeBlock,
         Jpeg2000SubbandKind subbandKind,
@@ -792,8 +865,13 @@ internal static class Jpeg2000Tier1Decoder
 
         int label = kind switch
         {
-            Jpeg2000SubbandKind.LL or Jpeg2000SubbandKind.LH => GetSignificanceLabelOrient0(h, v, d),
-            Jpeg2000SubbandKind.HL => GetSignificanceLabelOrient1(h, v, d),
+            Jpeg2000SubbandKind.LL => GetSignificanceLabelOrient0(h, v, d),
+            Jpeg2000SubbandKind.LH => SwapOrientationContextsForDiagnostics
+                ? GetSignificanceLabelOrient1(h, v, d)
+                : GetSignificanceLabelOrient0(h, v, d),
+            Jpeg2000SubbandKind.HL => SwapOrientationContextsForDiagnostics
+                ? GetSignificanceLabelOrient0(h, v, d)
+                : GetSignificanceLabelOrient1(h, v, d),
             Jpeg2000SubbandKind.HH => GetSignificanceLabelOrient2(h, v, d),
             _ => 0
         };
@@ -845,18 +923,18 @@ internal static class Jpeg2000Tier1Decoder
         {
             if (h == 0 && v == 0)
                 return 0;
-            return h < 2 && v < 2 ? 1 : 2;
+            return h + v == 1 ? 1 : 2;
         }
 
         if (d == 1)
         {
             if (h == 0 && v == 0)
                 return 3;
-            return h < 2 && v < 2 ? 4 : 5;
+            return h + v == 1 ? 4 : 5;
         }
 
         if (d == 2)
-            return h < 2 && v < 2 ? 6 : 7;
+            return h == 0 && v == 0 ? 6 : 7;
 
         return 8;
     }
@@ -1240,7 +1318,7 @@ internal static class Jpeg2000InverseWavelet
         {
             int rowOffset = y * stride;
             Interleave97(data, rowOffset, 1, width, lowStartsOnOdd, temp);
-            Synthesize97(temp, 0, width);
+            Synthesize97(temp, 0, width, lowStartsOnOdd);
             Array.Copy(temp, 0, data, rowOffset, width);
         }
     }
@@ -1251,7 +1329,7 @@ internal static class Jpeg2000InverseWavelet
         for (int x = 0; x < width; x++)
         {
             Interleave97(data, x, stride, height, lowStartsOnOdd, temp);
-            Synthesize97(temp, 0, height);
+            Synthesize97(temp, 0, height, lowStartsOnOdd);
             for (int y = 0; y < height; y++)
                 data[y * stride + x] = temp[y];
         }
@@ -1281,7 +1359,7 @@ internal static class Jpeg2000InverseWavelet
             target[highStart + (i << 1)] = source[offset + (lowLength + i) * step];
     }
 
-    private static void Synthesize97(float[] p, int i0, int i1)
+    private static void Synthesize97(float[] p, int i0, int i1, bool lowStartsOnOdd)
     {
         // JPEG2000 irreversible 9/7 lifting coefficients. Alpha and Beta are
         // negative in the forward transform, so the inverse step must subtract
@@ -1296,44 +1374,41 @@ internal static class Jpeg2000InverseWavelet
         if (i1 <= i0)
             return;
 
-        if (i1 == i0 + 1)
-        {
-            p[i0] *= X;
-            return;
-        }
+        int lowStart = lowStartsOnOdd ? i0 + 1 : i0;
+        int highStart = lowStartsOnOdd ? i0 : i0 + 1;
 
-        for (int i = i0 + 1; i < i1; i += 2)
+        for (int i = lowStart; i < i1; i += 2)
             p[i] *= K;
 
-        for (int i = i0; i < i1; i += 2)
+        for (int i = highStart; i < i1; i += 2)
             p[i] *= X;
 
-        // Use symmetric extension at both ends. This keeps the edge handling
-        // explicit and avoids parity mistakes for the final odd/even samples.
-        for (int i = i0; i < i1; i += 2)
+        // Use symmetric extension at both ends and respect the actual
+        // low/high parity for this resolution slice.
+        for (int i = lowStart; i < i1; i += 2)
         {
             float left = i - 1 >= i0 ? p[i - 1] : (i + 1 < i1 ? p[i + 1] : 0f);
             float right = i + 1 < i1 ? p[i + 1] : left;
             p[i] -= Delta * (left + right);
         }
 
-        for (int i = i0 + 1; i < i1; i += 2)
+        for (int i = highStart; i < i1; i += 2)
         {
-            float left = p[i - 1];
+            float left = i - 1 >= i0 ? p[i - 1] : (i + 1 < i1 ? p[i + 1] : 0f);
             float right = i + 1 < i1 ? p[i + 1] : left;
             p[i] -= Gamma * (left + right);
         }
 
-        for (int i = i0; i < i1; i += 2)
+        for (int i = lowStart; i < i1; i += 2)
         {
             float left = i - 1 >= i0 ? p[i - 1] : (i + 1 < i1 ? p[i + 1] : 0f);
             float right = i + 1 < i1 ? p[i + 1] : left;
             p[i] -= Beta * (left + right);
         }
 
-        for (int i = i0 + 1; i < i1; i += 2)
+        for (int i = highStart; i < i1; i += 2)
         {
-            float left = p[i - 1];
+            float left = i - 1 >= i0 ? p[i - 1] : (i + 1 < i1 ? p[i + 1] : 0f);
             float right = i + 1 < i1 ? p[i + 1] : left;
             p[i] -= Alpha * (left + right);
         }

@@ -1,0 +1,43 @@
+# Build folders
+build/
+debug/
+release/
+x64/
+x86/
+tools/
+image/
+.qtcreator
+
+# CMake / qmake / generated
+CMakeFiles/
+CMakeCache.txt
+Makefile
+*.pro.user
+*.pro.user.*
+*.qbs.user
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.user
+
+# Qt moc/uic/rcc
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# Object files / binaries
+*.obj
+*.o
+*.exe
+*.dll
+*.lib
+*.a
+*.pdb
+
+# Logs / temp
+*.log
+*.tmp

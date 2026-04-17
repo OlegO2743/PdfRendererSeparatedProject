@@ -88,6 +88,10 @@ internal sealed class Jpeg2000Codestream
                         componentCount: size?.Components.Count ?? 0);
                     componentQuantizations[componentQuantization.ComponentIndex] = componentQuantization.Quantization;
                     break;
+
+                default:
+                    TraceIgnoredMarker(marker, inTilePart: false, tileIndex: null, tilePartIndex: null, segment);
+                    break;
             }
         }
 
@@ -169,6 +173,10 @@ internal sealed class Jpeg2000Codestream
                 case 0x5D:
                     Jpeg2000ComponentQuantization componentQuantization = ReadQuantization(segment, hasComponentIndex: true, componentCount: 0);
                     tileComponentQuantizations[componentQuantization.ComponentIndex] = componentQuantization.Quantization;
+                    break;
+
+                default:
+                    TraceIgnoredMarker(marker, inTilePart: true, tileIndex, tilePartIndex, segment);
                     break;
             }
         }
@@ -263,6 +271,23 @@ internal sealed class Jpeg2000Codestream
         }
 
         return -1;
+    }
+
+    private static void TraceIgnoredMarker(
+        byte marker,
+        bool inTilePart,
+        int? tileIndex,
+        int? tilePartIndex,
+        Jpeg2000MarkerSegment segment)
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("JPX_TRACE_IGNORED_MARKERS"), "1", StringComparison.Ordinal))
+            return;
+
+        string scope = inTilePart
+            ? $"tile={tileIndex}, part={tilePartIndex}"
+            : "main";
+        Console.WriteLine(
+            $"JPX ignored marker: scope={scope}, marker=0x{marker:X2}, payloadStart={segment.PayloadStart}, payloadLength={segment.PayloadLength}");
     }
 
     private static Jpeg2000Size ReadSize(Jpeg2000MarkerSegment segment)

@@ -88,6 +88,21 @@ public sealed class PdfResourceScope
         return false;
     }
 
+    public bool TryGetExtGraphicsState(string resourceName, out PdfExtGraphicsState? extGraphicsState)
+    {
+        foreach (string key in CandidateKeys(resourceName))
+        {
+            if (LocalResources.ExtGraphicsStates.TryGetValue(key, out extGraphicsState))
+                return true;
+        }
+
+        if (Parent != null)
+            return Parent.TryGetExtGraphicsState(resourceName, out extGraphicsState);
+
+        extGraphicsState = null;
+        return false;
+    }
+
     private static IEnumerable<string> CandidateKeys(string name)
     {
         yield return name;

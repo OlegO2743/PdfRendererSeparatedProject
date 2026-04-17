@@ -14,6 +14,8 @@ public sealed class PdfGraphicsState
     public DrawingColor FillColor { get; set; } = DrawingColor.Black;
     public string? StrokePatternName { get; set; }
     public string? FillPatternName { get; set; }
+    public float StrokeAlpha { get; set; } = 1f;
+    public float FillAlpha { get; set; } = 1f;
     public float LineWidth { get; set; } = 1f;
     public int LineCap { get; set; }
     public int LineJoin { get; set; }
@@ -32,6 +34,8 @@ public sealed class PdfGraphicsState
             FillColor = FillColor,
             StrokePatternName = StrokePatternName,
             FillPatternName = FillPatternName,
+            StrokeAlpha = StrokeAlpha,
+            FillAlpha = FillAlpha,
             LineWidth = LineWidth,
             LineCap = LineCap,
             LineJoin = LineJoin,

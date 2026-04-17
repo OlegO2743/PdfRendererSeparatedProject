@@ -3,10 +3,6 @@ namespace PdfCore.Images.Jpeg2000;
 internal static class Jpeg2000PacketParser
 {
     private static readonly Lazy<Jpeg2000PacketTraceConfig> TraceConfig = new(Jpeg2000PacketTraceConfig.Create);
-    private static readonly bool ForceFullRlcp = string.Equals(
-        Environment.GetEnvironmentVariable("JPX_FORCE_FULL_RLCP"),
-        "1",
-        StringComparison.Ordinal);
 
     public static Jpeg2000PacketTile ParseTile(Jpeg2000Codestream codestream, Jpeg2000TilePart tilePart)
     {
@@ -27,8 +23,8 @@ internal static class Jpeg2000PacketParser
                 break;
 
             case 1:
-                if (!ForceFullRlcp && tilePart.TilePartCount == tilePart.CodingStyle.DecompositionLevels + 1)
-                    ParseRlcpResolutionTilePart(packetTile, tilePart.CodingStyle, tilePart.TilePartIndex, ref reader);
+                if (ShouldParseRlcpAsSingleResolutionTilePart(tilePart, tilePart.CodingStyle))
+                    ParseRlcpResolutionTilePart(packetTile, tilePart, tilePart.CodingStyle, ref reader);
                 else
                     ParseRlcp(packetTile, tilePart.CodingStyle, ref reader);
                 break;
@@ -64,12 +60,29 @@ internal static class Jpeg2000PacketParser
         }
     }
 
+    private static bool ShouldParseRlcpAsSingleResolutionTilePart(Jpeg2000TilePart tilePart, Jpeg2000CodingStyle codingStyle)
+    {
+        int resolutionCount = codingStyle.DecompositionLevels + 1;
+        if (resolutionCount <= 1)
+            return false;
+
+        if (codingStyle.Layers != 1)
+            return false;
+
+        if (tilePart.TilePartCount != resolutionCount)
+            return false;
+
+        return tilePart.TilePartIndex >= 0 &&
+               tilePart.TilePartIndex < resolutionCount;
+    }
+
     private static void ParseRlcpResolutionTilePart(
         Jpeg2000PacketTile tile,
+        Jpeg2000TilePart tilePart,
         Jpeg2000CodingStyle codingStyle,
-        int resolution,
         ref Jpeg2000PacketBitReader reader)
     {
+        int resolution = tilePart.TilePartIndex;
         if (resolution < 0 || resolution > codingStyle.DecompositionLevels)
             return;
 

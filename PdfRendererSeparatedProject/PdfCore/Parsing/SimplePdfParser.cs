@@ -388,6 +388,35 @@ public static class SimplePdfParser
                 }
             }
 
+            string? extGStateDict = ExtractNamedDictionary(resourcesDictText, "/ExtGState");
+            if (!string.IsNullOrEmpty(extGStateDict))
+            {
+                foreach (Match match in Regex.Matches(extGStateDict, @"/(\w+)\s+(\d+)\s+(\d+)\s+R"))
+                {
+                    string resourceName = "/" + match.Groups[1].Value;
+                    int objNum = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+                    int genNum = int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
+                    string extStateText = FindObjectText(objNum, genNum);
+
+                    float strokeAlpha = 1f;
+                    float fillAlpha = 1f;
+
+                    Match strokeMatch = Regex.Match(extStateText, @"/CA\s+([+\-]?\d*\.?\d+)");
+                    if (strokeMatch.Success)
+                        strokeAlpha = ParseFloat(strokeMatch.Groups[1].Value);
+
+                    Match fillMatch = Regex.Match(extStateText, @"/ca\s+([+\-]?\d*\.?\d+)");
+                    if (fillMatch.Success)
+                        fillAlpha = ParseFloat(fillMatch.Groups[1].Value);
+
+                    resources.ExtGraphicsStates[resourceName] = new PdfExtGraphicsState
+                    {
+                        StrokeAlpha = strokeAlpha,
+                        FillAlpha = fillAlpha
+                    };
+                }
+            }
+
             return resources;
         }
 

@@ -17,10 +17,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{0A0E16A4-5827-4FF8-8CFB-545A4418D09F}|PdfViewer.WinForms\\PdfViewer.WinForms.csproj|d:\\projects\\c#\\pdfrendererseparatedproject\\pdfrendererseparatedproject\\pdfcore\\simplepdfdocument.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0A0E16A4-5827-4FF8-8CFB-545A4418D09F}|PdfViewer.WinForms\\PdfViewer.WinForms.csproj|solutionrelative:pdfcore\\simplepdfdocument.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0A0E16A4-5827-4FF8-8CFB-545A4418D09F}|PdfViewer.WinForms\\PdfViewer.WinForms.csproj|d:\\projects\\c#\\pdfrendererseparatedproject\\pdfrendererseparatedproject\\pdfviewer.winforms\\samplepdffactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{0A0E16A4-5827-4FF8-8CFB-545A4418D09F}|PdfViewer.WinForms\\PdfViewer.WinForms.csproj|solutionrelative:pdfviewer.winforms\\samplepdffactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -44,7 +40,7 @@
               "RelativeDocumentMoniker": "PdfCore\\Parsing\\SimplePdfParser.cs",
               "ToolTip": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\PdfCore\\Parsing\\SimplePdfParser.cs",
               "RelativeToolTip": "PdfCore\\Parsing\\SimplePdfParser.cs",
-              "ViewState": "AgIAAJkFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAJkFAAAAAAAAAAAAAL8FAABDAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-14T14:19:27.616Z",
               "EditorCaption": ""
@@ -55,12 +51,11 @@
               "Title": "SimplePdfRenderer.cs",
               "DocumentMoniker": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\PdfCore\\SimplePdfRenderer.cs",
               "RelativeDocumentMoniker": "PdfCore\\SimplePdfRenderer.cs",
-              "ToolTip": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\PdfCore\\SimplePdfRenderer.cs*",
-              "RelativeToolTip": "PdfCore\\SimplePdfRenderer.cs*",
+              "ToolTip": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\PdfCore\\SimplePdfRenderer.cs",
+              "RelativeToolTip": "PdfCore\\SimplePdfRenderer.cs",
               "ViewState": "AgIAAPwCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-14T14:19:11.751Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-14T14:19:11.751Z"
             },
             {
               "$type": "Document",
@@ -72,8 +67,7 @@
               "RelativeToolTip": "PdfCore\\SimplePdfPage.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-14T14:19:09.802Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-14T14:19:09.802Z"
             },
             {
               "$type": "Document",
@@ -85,21 +79,7 @@
               "RelativeToolTip": "PdfCore\\SimplePdfDocument.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-14T14:19:04.592Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "SamplePdfFactory.cs",
-              "DocumentMoniker": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\PdfViewer.WinForms\\SamplePdfFactory.cs",
-              "RelativeDocumentMoniker": "PdfViewer.WinForms\\SamplePdfFactory.cs",
-              "ToolTip": "D:\\Projects\\C#\\PdfRendererSeparatedProject\\PdfRendererSeparatedProject\\PdfViewer.WinForms\\SamplePdfFactory.cs*",
-              "RelativeToolTip": "PdfViewer.WinForms\\SamplePdfFactory.cs*",
-              "ViewState": "AgIAAGIEAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-14T14:18:41.507Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-14T14:19:04.592Z"
             }
           ]
         }

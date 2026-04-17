@@ -37,7 +37,6 @@ public static class SimplePdfRenderer
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.PixelOffsetMode = PixelOffsetMode.Half;
 
-        _stateStack.Clear();
         var resourceScope = new PdfResourceScope(page.Resources);
         var gs = new PdfGraphicsState();
         var textEngine = new PdfTextEngine();
@@ -56,6 +55,7 @@ public static class SimplePdfRenderer
         PdfGraphicsState gs,
         PdfTextEngine textEngine)
     {
+        var stateStack = new Stack<(PdfGraphicsState Gs, PdfTextEngine.StateSnapshot Text, GraphicsState Graphics)>();
         var operands = new List<object>();
         var path = new GraphicsPath();
         PointF? currentPoint = null;
@@ -81,6 +81,7 @@ public static class SimplePdfRenderer
                     resourceScope,
                     gs,
                     textEngine,
+                    stateStack,
                     path,
                     ref currentPoint,
                     ref pendingClip,
@@ -102,6 +103,7 @@ public static class SimplePdfRenderer
         PdfResourceScope resourceScope,
         PdfGraphicsState gs,
         PdfTextEngine textEngine,
+        Stack<(PdfGraphicsState Gs, PdfTextEngine.StateSnapshot Text, GraphicsState Graphics)> stateStack,
         GraphicsPath path,
         ref PointF? currentPoint,
         ref bool pendingClip,
@@ -110,11 +112,11 @@ public static class SimplePdfRenderer
         switch (op)
         {
             case "q":
-                PushState(gs, textEngine, g);
+                PushState(stateStack, gs, textEngine, g);
                 break;
 
             case "Q":
-                PopState(gs, textEngine, g);
+                PopState(stateStack, gs, textEngine, g);
                 break;
 
             case "cm":
@@ -148,10 +150,21 @@ public static class SimplePdfRenderer
 
             case "i":
             case "ri":
-            case "gs":
                 if (operands.Count > 0)
                     PopOperand(operands);
                 break;
+
+            case "gs":
+                {
+                    string resourceName = (string)PopOperand(operands);
+                    if (resourceScope.TryGetExtGraphicsState(resourceName, out PdfExtGraphicsState? extGraphicsState) &&
+                        extGraphicsState != null)
+                    {
+                        gs.StrokeAlpha = extGraphicsState.StrokeAlpha;
+                        gs.FillAlpha = extGraphicsState.FillAlpha;
+                    }
+                    break;
+                }
 
             case "d":
                 {
@@ -632,14 +645,16 @@ public static class SimplePdfRenderer
 
             pageContext.ObjectCollector?.AddImage(imageBounds, image.ResourceName);
         }
-        catch (NotSupportedException)
+        catch (NotSupportedException ex)
         {
             // Some PDFs use specialized image encodings, e.g. CCITT masks.
             // Leave the unsupported XObject blank instead of failing the page.
+            TraceImageRenderFailure(image, ex);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
             // Malformed or unsupported image data should not prevent rendering the rest of the page.
+            TraceImageRenderFailure(image, ex);
         }
         finally
         {
@@ -650,6 +665,16 @@ public static class SimplePdfRenderer
     private static bool ShouldUseNearestNeighbor(PdfImageXObject image)
         => image.IsImageMask ||
            image.BitsPerComponent <= 1;
+
+    private static void TraceImageRenderFailure(PdfImageXObject image, Exception ex)
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("PDF_TRACE_IMAGE_ERRORS"), "1", StringComparison.Ordinal))
+            return;
+
+        Console.WriteLine(
+            $"PDF image render failure: resource={image.ResourceName}, filter={image.Filter}, size={image.Width}x{image.Height}, " +
+            $"bits={image.BitsPerComponent}, colorSpace={image.ColorSpace.GetType().Name}, error={ex.GetType().Name}: {ex.Message}");
+    }
 
     private static void RenderInlineImage(
         DrawingGraphics g,
@@ -699,17 +724,23 @@ public static class SimplePdfRenderer
         return gp;
     }
 
-    private static readonly Stack<(PdfGraphicsState Gs, PdfTextEngine.StateSnapshot Text, GraphicsState Graphics)> _stateStack = new();
+    private static void PushState(
+        Stack<(PdfGraphicsState Gs, PdfTextEngine.StateSnapshot Text, GraphicsState Graphics)> stateStack,
+        PdfGraphicsState gs,
+        PdfTextEngine textEngine,
+        DrawingGraphics g)
+        => stateStack.Push((gs.Clone(), textEngine.CreateSnapshot(), g.Save()));
 
-    private static void PushState(PdfGraphicsState gs, PdfTextEngine textEngine, DrawingGraphics g)
-        => _stateStack.Push((gs.Clone(), textEngine.CreateSnapshot(), g.Save()));
-
-    private static void PopState(PdfGraphicsState gs, PdfTextEngine textEngine, DrawingGraphics g)
+    private static void PopState(
+        Stack<(PdfGraphicsState Gs, PdfTextEngine.StateSnapshot Text, GraphicsState Graphics)> stateStack,
+        PdfGraphicsState gs,
+        PdfTextEngine textEngine,
+        DrawingGraphics g)
     {
-        if (_stateStack.Count == 0)
+        if (stateStack.Count == 0)
             return;
 
-        var popped = _stateStack.Pop();
+        var popped = stateStack.Pop();
         gs.Ctm.Dispose();
         gs.Ctm = popped.Gs.Ctm.Clone();
         gs.FillColorSpace = popped.Gs.FillColorSpace;
@@ -718,6 +749,8 @@ public static class SimplePdfRenderer
         gs.StrokeColor = popped.Gs.StrokeColor;
         gs.FillPatternName = popped.Gs.FillPatternName;
         gs.StrokePatternName = popped.Gs.StrokePatternName;
+        gs.StrokeAlpha = popped.Gs.StrokeAlpha;
+        gs.FillAlpha = popped.Gs.FillAlpha;
         gs.LineWidth = popped.Gs.LineWidth;
         gs.LineCap = popped.Gs.LineCap;
         gs.LineJoin = popped.Gs.LineJoin;
@@ -770,10 +803,14 @@ public static class SimplePdfRenderer
             return;
 
         float effectiveWidth = GetEffectiveLineWidth(pageContext, gs);
+        DrawingColor strokeColor = ApplyOpacity(gs.StrokeColor, gs.StrokeAlpha);
         if (ShouldUseEnhancedThinLine(gs, path, effectiveWidth))
+        {
+            strokeColor = ApplyThinLineCoverage(strokeColor, effectiveWidth);
             effectiveWidth = 1f;
+        }
 
-        using var pen = new Pen(gs.StrokeColor, effectiveWidth);
+        using var pen = new Pen(strokeColor, effectiveWidth);
         pen.StartCap = MapLineCap(gs.LineCap);
         pen.EndCap = MapLineCap(gs.LineCap);
         pen.LineJoin = MapLineJoin(gs.LineJoin);
@@ -865,6 +902,20 @@ public static class SimplePdfRenderer
         }
 
         return true;
+    }
+
+    private static DrawingColor ApplyThinLineCoverage(DrawingColor color, float effectiveWidth)
+    {
+        float normalizedCoverage = Math.Clamp(effectiveWidth, 0.2f, 1f);
+        float perceptualCoverage = MathF.Sqrt(normalizedCoverage);
+        int alpha = (int)MathF.Round(Math.Clamp(color.A * perceptualCoverage, 24f, 255f));
+        return DrawingColor.FromArgb(alpha, color.R, color.G, color.B);
+    }
+
+    private static DrawingColor ApplyOpacity(DrawingColor color, float opacity)
+    {
+        int alpha = (int)MathF.Round(Math.Clamp(color.A * Math.Clamp(opacity, 0f, 1f), 0f, 255f));
+        return DrawingColor.FromArgb(alpha, color.R, color.G, color.B);
     }
 
     private static float[] NormalizeDashArray(float[] source)
@@ -972,7 +1023,7 @@ public static class SimplePdfRenderer
             }
         }
 
-        using var brush = new SolidBrush(gs.FillColor);
+        using var brush = new SolidBrush(ApplyOpacity(gs.FillColor, gs.FillAlpha));
         g.FillPath(brush, path);
         TrackVectorBounds(pageContext, path.GetBounds());
     }

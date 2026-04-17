@@ -37,7 +37,6 @@ public sealed class MainForm : Form
     private readonly ToolStripButton _rotateClockwiseButton = new("\u21bb");
     private readonly ToolStripButton _fitHeightButton = new("↕");
     private readonly ToolStripButton _fitWidthButton = new("↔");
-    private readonly ToolStripDropDownButton _demoMenuButton = new("Демо");
     private readonly ToolStripLabel _zoomLabel = new("100%");
     private readonly ToolStripLabel _pageLabel = new("0 / 0");
     private readonly ToolStripLabel _loadStatusLabel = new();
@@ -110,21 +109,9 @@ public sealed class MainForm : Form
         _toolStrip.Items.Add(new ToolStripSeparator());
         _toolStrip.Items.Add(_loadStatusLabel);
         _toolStrip.Items.Add(_loadProgressBar);
-        _toolStrip.Items.Add(new ToolStripSeparator());
-        _toolStrip.Items.Add(_demoMenuButton);
 
         Controls.Add(_canvasHost);
         Controls.Add(_toolStrip);
-
-        AddDemoMenuItem("Создать ICCBased phase 2 demo PDF", CreateIccBasedPhase2Demo);
-        AddDemoMenuItem("Создать paint operators demo PDF", CreatePaintOperatorsDemo);
-        AddDemoMenuItem("Создать resource ColorSpace demo PDF", CreateResourceColorSpaceDemo);
-        AddDemoMenuItem("Создать full demo PDF", CreateFullDemo);
-        AddDemoMenuItem("Создать graphics demo PDF", CreateGraphicsDemo);
-        AddDemoMenuItem("Создать Form XObject demo PDF", CreateFormXObjectDemo);
-        AddDemoMenuItem("Создать image XObject demo PDF", CreateImageXObjectDemo);
-        AddDemoMenuItem("Создать Contents array demo PDF", CreateContentsArrayDemo);
-        AddDemoMenuItem("Создать CMYK demo PDF", CreateCmykDemo);
 
         _openButton.Click += (_, _) => OpenPdf();
         _firstPageButton.Click += (_, _) => GoToPage(0);
@@ -170,13 +157,6 @@ public sealed class MainForm : Form
         _fitHeightButton.ToolTipText = "По высоте";
         _fitWidthButton.ToolTipText = "По ширине";
         _rotateClockwiseButton.ToolTipText = "\u041f\u043e\u0432\u0435\u0440\u043d\u0443\u0442\u044c \u043d\u0430 90\u00b0";
-    }
-
-    private void AddDemoMenuItem(string text, Action action)
-    {
-        var item = new ToolStripMenuItem(text);
-        item.Click += (_, _) => action();
-        _demoMenuButton.DropDownItems.Add(item);
     }
 
     private async void OpenPdf()
@@ -278,7 +258,6 @@ public sealed class MainForm : Form
         _canvas.UseWaitCursor = isLoading;
 
         _openButton.Enabled = !isLoading;
-        _demoMenuButton.Enabled = !isLoading;
         _modeCombo.Enabled = !isLoading;
         _loadStatusLabel.Visible = isLoading;
         _loadProgressBar.Visible = isLoading;
@@ -817,69 +796,6 @@ public sealed class MainForm : Form
         _fitHeightButton.Enabled = hasDocument;
         _fitWidthButton.Enabled = hasDocument;
         _rotateClockwiseButton.Enabled = hasDocument;
-    }
-
-    private void CreateGraphicsDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_graphics_demo.pdf");
-        SamplePdfFactory.CreateGraphicsDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateFullDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_full_demo.pdf");
-        SamplePdfFactory.CreateFullDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateFormXObjectDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_form_xobject_demo.pdf");
-        SamplePdfFactory.CreateFormXObjectDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateImageXObjectDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_image_xobject_demo.pdf");
-        SamplePdfFactory.CreateImageXObjectDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateContentsArrayDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_contents_array_demo.pdf");
-        SamplePdfFactory.CreateContentsArrayDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreatePaintOperatorsDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_paint_operators_demo.pdf");
-        SamplePdfFactory.CreatePaintOperatorsDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateCmykDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_cmyk_demo.pdf");
-        SamplePdfFactory.CreateCmykDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateResourceColorSpaceDemo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_resource_colorspace_demo.pdf");
-        SamplePdfFactory.CreateResourceColorSpaceDemoPdf(path);
-        LoadDocument(path);
-    }
-
-    private void CreateIccBasedPhase2Demo()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "sample_iccbased_phase2_demo.pdf");
-        SamplePdfFactory.CreateIccBasedPhase2DemoPdf(path);
-        LoadDocument(path);
     }
 
     private sealed class PdfCanvasHostPanel : Panel

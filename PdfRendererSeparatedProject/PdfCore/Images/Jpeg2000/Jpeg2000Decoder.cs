@@ -102,17 +102,62 @@ public static class Jpeg2000Decoder
             throw new InvalidOperationException("Empty JPX image stream.");
 
         Jpeg2000Codestream codestream = Jpeg2000Codestream.Parse(data);
-        if (Jpeg2000InternalDecoder.CanDecode(codestream))
-            return Jpeg2000InternalDecoder.Decode(codestream);
-
+        TraceTilePartOverrides(codestream);
+        TracePrecinctLayout(codestream);
         if (TryDecodeWithWic(data, out Bitmap? bitmap, out string? wicError))
             return bitmap;
+
+        TraceWicFailure(codestream, wicError);
+
+        if (Jpeg2000InternalDecoder.CanDecode(codestream))
+            return Jpeg2000InternalDecoder.Decode(codestream);
 
         Jpeg2000Info info = Jpeg2000Info.FromCodestream(codestream);
         throw new NotSupportedException(
             "JPXDecode/JPEG2000 image was recognized, but this Windows installation does not provide a JPEG2000 WIC codec " +
             "and the internal JPEG2000 decoder does not yet support this codestream profile. " +
             $"{info}. WIC error: {wicError}");
+    }
+
+    private static void TraceWicFailure(Jpeg2000Codestream codestream, string? wicError)
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("JPX_TRACE_WIC_FAILURE"), "1", StringComparison.Ordinal))
+            return;
+
+        Jpeg2000Info info = Jpeg2000Info.FromCodestream(codestream);
+        Console.WriteLine($"JPX WIC failure: {info}. Error: {wicError}");
+    }
+
+    private static void TraceTilePartOverrides(Jpeg2000Codestream codestream)
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("JPX_TRACE_TILE_OVERRIDES"), "1", StringComparison.Ordinal))
+            return;
+
+        for (int i = 0; i < codestream.TileParts.Count; i++)
+        {
+            Jpeg2000TilePart tilePart = codestream.TileParts[i];
+            bool codingOverride = tilePart.CodingStyle != null && !Equals(tilePart.CodingStyle, codestream.CodingStyle);
+            bool quantizationOverride = tilePart.Quantization != null && !Equals(tilePart.Quantization, codestream.Quantization);
+            bool componentQuantizationOverride = tilePart.ComponentQuantizations.Count > 0;
+
+            if (!codingOverride && !quantizationOverride && !componentQuantizationOverride)
+                continue;
+
+            Console.WriteLine(
+                $"JPX tile-part override: tile={tilePart.TileIndex}, part={tilePart.TilePartIndex}/{tilePart.TilePartCount - 1}, " +
+                $"codingOverride={codingOverride}, quantOverride={quantizationOverride}, compQuantOverrides={tilePart.ComponentQuantizations.Count}");
+        }
+    }
+
+    private static void TracePrecinctLayout(Jpeg2000Codestream codestream)
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("JPX_TRACE_PRECINCTS"), "1", StringComparison.Ordinal))
+            return;
+
+        string widths = string.Join(",", codestream.CodingStyle.PrecinctWidths);
+        string heights = string.Join(",", codestream.CodingStyle.PrecinctHeights);
+        Console.WriteLine(
+            $"JPX precincts: scod=0x{codestream.CodingStyle.Scod:X2}, widths=[{widths}], heights=[{heights}]");
     }
 
     private static bool TryDecodeWithWic(byte[] data, out Bitmap bitmap, out string? error)

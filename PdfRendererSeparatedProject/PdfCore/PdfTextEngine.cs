@@ -76,7 +76,7 @@ public sealed class PdfTextEngine
         if (!resourceScope.TryGetFont(_state.FontResourceName, out PdfFontResource? fontResource) || fontResource == null)
             return;
 
-        using SolidBrush brush = new(gs.FillColor);
+        using SolidBrush brush = new(ApplyOpacity(gs.FillColor, gs.FillAlpha));
 
         float textUnitScalePx = GetTextUnitScalePx(pageContext, gs);
 
@@ -148,12 +148,26 @@ public sealed class PdfTextEngine
             Math.Abs(_state.CharSpacing) < 0.001f &&
             Math.Abs(_state.WordSpacing) < 0.001f;
 
-        if (renderWholeString)
-            RenderWholeString(g, pageContext, gs, font, brush, text);
-        else
-            RenderPerCharacter(g, pageContext, gs, fontResource, font, brush, text);
+        if (ShouldUseMeasuredWholeStringFallback(fontResource) &&
+            Math.Abs(_state.CharSpacing) < 0.001f &&
+            Math.Abs(_state.WordSpacing) < 0.001f)
+        {
+            float measuredAdvance = RenderMeasuredWholeString(g, pageContext, gs, font, brush, text);
+            _state.TranslateTextMatrix(measuredAdvance, 0f);
+            return;
+        }
 
-        float totalAdvance = ComputeAdvance(fontResource, text);
+        float totalAdvance;
+        if (renderWholeString)
+        {
+            RenderWholeString(g, pageContext, gs, font, brush, text);
+            totalAdvance = ComputeAdvance(fontResource, text);
+        }
+        else
+        {
+            totalAdvance = RenderPerCharacter(g, pageContext, gs, fontResource, font, brush, text);
+        }
+
         _state.TranslateTextMatrix(totalAdvance, 0f);
     }
 
@@ -229,6 +243,12 @@ public sealed class PdfTextEngine
             TrackTextBounds(pageContext, text, path);
         }
     }
+
+        private static System.Drawing.Color ApplyOpacity(System.Drawing.Color color, float opacity)
+        {
+            int alpha = (int)MathF.Round(Math.Clamp(color.A * Math.Clamp(opacity, 0f, 1f), 0f, 255f));
+            return System.Drawing.Color.FromArgb(alpha, color.R, color.G, color.B);
+        }
 
     private void FillType1GlyphPath(
         DrawingGraphics g,
@@ -534,7 +554,29 @@ public sealed class PdfTextEngine
                 font.GetHeight(g)));
     }
 
-    private void RenderPerCharacter(
+    private float RenderMeasuredWholeString(
+        DrawingGraphics g,
+        PdfPageContext pageContext,
+        PdfGraphicsState gs,
+        Font font,
+        SolidBrush brush,
+        string text)
+    {
+        RenderWholeString(g, pageContext, gs, font, brush, text);
+
+        float measuredWidthPx = g.MeasureString(text, font, PointF.Empty, _typographicFormat).Width;
+        float textUnitScalePx = GetTextUnitScalePx(pageContext, gs);
+        float scaleX = _state.HorizontalScale / 100f;
+        if (textUnitScalePx <= 0.001f)
+            return 0f;
+
+        float glyphAdvance = (measuredWidthPx * scaleX) / textUnitScalePx;
+        int characterCount = text.Length;
+        int wordCount = text.Count(ch => ch == ' ');
+        return glyphAdvance + (_state.CharSpacing * characterCount + _state.WordSpacing * wordCount) * scaleX;
+    }
+
+    private float RenderPerCharacter(
         DrawingGraphics g,
         PdfPageContext pageContext,
         PdfGraphicsState gs,
@@ -545,8 +587,11 @@ public sealed class PdfTextEngine
     {
         float scaleX = _state.HorizontalScale / 100f;
         float ascentPx = GetFontAscentPx(font);
+        float textUnitScalePx = GetTextUnitScalePx(pageContext, gs);
         bool adjustGlyphWidth = fontResource.Widths != null || fontResource.CidWidths != null;
+        bool useMeasuredAdvanceFallback = ShouldUseMeasuredAdvanceFallback(fontResource);
         RectangleF? trackedBounds = null;
+        float totalAdvance = 0f;
 
         foreach (char ch in text)
         {
@@ -604,17 +649,21 @@ public sealed class PdfTextEngine
                 ? RectangleF.Union(trackedBounds.Value, charBounds)
                 : charBounds;
 
-            float advance = ComputeAdvance(fontResource, ch.ToString());
+            float advance = useMeasuredAdvanceFallback && !char.IsWhiteSpace(ch)
+                ? ComputeMeasuredAdvance(glyphWidthPx, glyphScaleAdjust, textUnitScalePx, scaleX, ch)
+                : ComputeAdvance(fontResource, ch.ToString());
+            totalAdvance += advance;
             _state.TranslateTextMatrix(advance, 0f);
         }
 
         // Внешний ShowText уже передвинет матрицу на всю строку.
         // Чтобы не было двойного сдвига, возвращаем матрицу назад.
-        float totalAdvance = ComputeAdvance(fontResource, text);
         _state.TranslateTextMatrix(-totalAdvance, 0f);
 
         if (trackedBounds.HasValue)
             TrackTextBounds(pageContext, text, trackedBounds.Value);
+
+        return totalAdvance;
     }
 
     private static void TrackTextBounds(PdfPageContext pageContext, string text, GraphicsPath path)
@@ -696,6 +745,38 @@ public sealed class PdfTextEngine
             return 1f;
 
         return Math.Clamp(targetWidthPx / measuredWidthPx, 0.55f, 1.75f);
+    }
+
+    private bool ShouldUseMeasuredAdvanceFallback(PdfFontResource fontResource)
+    {
+        if (!fontResource.IsIdentityH)
+            return false;
+
+        return fontResource.CidWidths == null || fontResource.CidWidths.Count == 0;
+    }
+
+    private bool ShouldUseMeasuredWholeStringFallback(PdfFontResource fontResource)
+    {
+        if (!fontResource.IsIdentityH)
+            return false;
+
+        bool hasCidWidths = fontResource.CidWidths != null && fontResource.CidWidths.Count > 0;
+        bool hasSimpleWidths = fontResource.Widths != null && fontResource.Widths.Length > 0;
+        return !hasCidWidths && !hasSimpleWidths;
+    }
+
+    private float ComputeMeasuredAdvance(
+        float measuredWidthPx,
+        float glyphScaleAdjust,
+        float textUnitScalePx,
+        float scaleX,
+        char ch)
+    {
+        float glyphAdvance = textUnitScalePx > 0.001f
+            ? (measuredWidthPx * glyphScaleAdjust * scaleX) / textUnitScalePx
+            : 0f;
+        float wordSpacing = ch == ' ' ? _state.WordSpacing : 0f;
+        return glyphAdvance + (_state.CharSpacing + wordSpacing) * scaleX;
     }
 
     private float ComputeAdvance(PdfFontResource fontResource, string text)
@@ -820,6 +901,9 @@ public sealed class PdfTextEngine
         string family = normalizedName switch
         {
             _ when IsComputerModernMathFont(normalizedName) => "Cambria Math",
+            _ when normalizedName.StartsWith("TimesNewRoman", StringComparison.OrdinalIgnoreCase) => "Times New Roman",
+            _ when normalizedName.StartsWith("Arial", StringComparison.OrdinalIgnoreCase) => "Arial",
+            _ when normalizedName.StartsWith("CourierNew", StringComparison.OrdinalIgnoreCase) => "Courier New",
             _ when normalizedName.StartsWith("CMR", StringComparison.OrdinalIgnoreCase) => "Times New Roman",
             _ when normalizedName.StartsWith("CMSS", StringComparison.OrdinalIgnoreCase) => "Arial",
             _ when normalizedName.StartsWith("CMTT", StringComparison.OrdinalIgnoreCase) => "Courier New",

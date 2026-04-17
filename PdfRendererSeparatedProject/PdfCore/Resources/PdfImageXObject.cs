@@ -24,6 +24,7 @@ public sealed class PdfImageXObject
 
     public Bitmap CreateBitmap(DrawingColor? maskColor = null)
     {
+        PdfIccBasedColorSpace? iccColorSpace = ColorSpace as PdfIccBasedColorSpace;
         PdfColorSpace effectiveColorSpace = ColorSpace;
         if (effectiveColorSpace is PdfIccBasedColorSpace icc)
         {
@@ -47,12 +48,14 @@ public sealed class PdfImageXObject
             using var ms = new MemoryStream(ImageBytes);
             using var tmp = new Bitmap(ms);
             bitmap = new Bitmap(tmp);
+            bitmap = ApplyIccColorProfileIfPresent(bitmap, iccColorSpace);
             return ApplySoftMaskIfPresent(bitmap);
         }
 
         if (Filter == "/JPXDecode")
         {
             bitmap = Jpeg2000Decoder.Decode(ImageBytes);
+            bitmap = ApplyIccColorProfileIfPresent(bitmap, iccColorSpace);
             if (effectiveColorSpace is PdfIndexedColorSpace indexedColorSpace)
                 bitmap = ApplyIndexedPaletteToDecodedBitmap(bitmap, indexedColorSpace);
             return ApplySoftMaskIfPresent(bitmap);
@@ -81,7 +84,38 @@ public sealed class PdfImageXObject
             _ => throw new NotSupportedException($"Image ColorSpace {effectiveColorSpace} пока не поддержан.")
         };
 
+        bitmap = ApplyIccColorProfileIfPresent(bitmap, iccColorSpace);
         return ApplySoftMaskIfPresent(bitmap);
+    }
+
+    private static Bitmap ApplyIccColorProfileIfPresent(Bitmap source, PdfIccBasedColorSpace? iccColorSpace)
+    {
+        if (iccColorSpace == null)
+            return source;
+
+        if (PdfColorManagementSettings.Mode != PdfColorManagementMode.ExperimentalPhase2Icc)
+            return source;
+
+        Bitmap? converted = PdfIccColorConverter.TryConvertBitmapToSrgb(source, iccColorSpace);
+        if (converted == null)
+        {
+            TraceIcc($"fallback original fmt={source.PixelFormat} size={source.Width}x{source.Height}", iccColorSpace);
+            return source;
+        }
+
+        TraceIcc($"converted fmt={source.PixelFormat}->{converted.PixelFormat} size={source.Width}x{source.Height}", iccColorSpace);
+        source.Dispose();
+        return converted;
+    }
+
+    private static void TraceIcc(string message, PdfIccBasedColorSpace colorSpace)
+    {
+        string? flag = Environment.GetEnvironmentVariable("PDF_ICC_TRACE");
+        if (!string.Equals(flag, "1", StringComparison.Ordinal))
+            return;
+
+        Console.Error.WriteLine(
+            $"[PdfImageXObject ICC] N={colorSpace.N} Bytes={colorSpace.ProfileBytes.Length} Obj={colorSpace.ProfileObjectNumber?.ToString() ?? "-"} {message}");
     }
 
     private Bitmap CreateCcittBitmap(DrawingColor maskColor)
@@ -448,6 +482,9 @@ public sealed class PdfImageXObject
         }
 
         var withAlpha = new Bitmap(Width, Height, DrawingPixelFormat.Format32bppArgb);
+        long alphaSum = 0;
+        int maxAlpha = 0;
+        int nonZeroAlphaCount = 0;
         try
         {
             for (int y = 0; y < Height; y++)
@@ -458,6 +495,11 @@ public sealed class PdfImageXObject
                     DrawingColor maskSample = decodedMask.GetPixel(x, y);
                     int maskAlpha = maskSample.R;
                     int alpha = (color.A * maskAlpha + 127) / 255;
+                    alphaSum += alpha;
+                    if (alpha > maxAlpha)
+                        maxAlpha = alpha;
+                    if (alpha > 0)
+                        nonZeroAlphaCount++;
                     withAlpha.SetPixel(x, y, DrawingColor.FromArgb(alpha, color.R, color.G, color.B));
                 }
             }
@@ -465,6 +507,14 @@ public sealed class PdfImageXObject
         finally
         {
             decodedMask.Dispose();
+        }
+
+        int totalPixels = Width * Height;
+        double averageAlpha = totalPixels > 0 ? alphaSum / (double)totalPixels : 0.0;
+        if (maxAlpha == 0 || averageAlpha < 2.0 || nonZeroAlphaCount < Math.Max(1, totalPixels / 200))
+        {
+            withAlpha.Dispose();
+            return source;
         }
 
         source.Dispose();
